@@ -350,9 +350,6 @@ public class SubFinderMain implements Serializable {
 						si.setId(seriesID.toString());
 					}
 
-					long videoFileSizeLimit = 300L;
-					long subtitleFileSizeLimit = 5L;
-
 					try {
 						DirectoryStream<Path> files = Files
 								.newDirectoryStream(Paths.get(videoFolder.toString(), si.getFoldername()));
@@ -363,7 +360,7 @@ public class SubFinderMain implements Serializable {
 							f = p.toString().split("\\.(?=[^\\.]+$)");
 							filesize = p.toFile().length();
 
-							if (f[1].equalsIgnoreCase("mkv") && videoFileSizeLimit < filesize / 1024 / 1024) {
+							if (f[1].equalsIgnoreCase("mkv") && videoSizeLimit < filesize / 1024 / 1024) {
 								System.out.println(String.format("\t\t\t - Found video file: %s, filesize (MB): %d",
 										p.toString(), filesize / 1024 / 1024));
 								si.setVideoFileName(p.toString());
@@ -371,7 +368,7 @@ public class SubFinderMain implements Serializable {
 								si.setSubDownloadRequired(true);
 							}
 
-							if (f[1].equalsIgnoreCase("srt") && subtitleFileSizeLimit < filesize / 1024) {
+							if (f[1].equalsIgnoreCase("srt") && subtitleSizeLimit < filesize / 1024) {
 								System.out.println(String.format("\t\t\t - Found subtitle file: %s, filesize (KB): %d",
 										p.toString(), filesize / 1024));
 								si.setSubFileName(p.toString());
