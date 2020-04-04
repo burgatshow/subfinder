@@ -73,5 +73,18 @@ The program accepts the following arguments:
 
 Arguments marked with **(*)** are required.
 
+Example command line:
+
+```bash
+java -jar /Users/burgatshow/SubFinder/SubFinder.jar \ 
+	--folder /Users/burgatshow/SubFinder/videos \
+	--mapping /Users/burgatshow/SubFinder/SubFinderConfig.properties \
+	--video-sizelimit 1000 \
+	--subtitle-sizelimit 10 \
+	--verbose
+```
+
+The command above will start the application located in `/Users/burgatshow/SubFinder/SubFinder.jar`, maps the working video folder (`--folder`) to `/Users/burgatshow/SubFinder/videos`. It also maps the configuration file (`--mapping`) to `/Users/burgatshow/SubFinder/SubFinderConfig.properties`. Finally, it enables verbose mode (`--verbose`) and sets the file limit for video (`--video-sizelimit`) to `1000 MB` and for subtitle (`--subtitle-sizelimit`) to `10 KB`.
+
 ## Troubleshooting
 Use the verbose mode if you think something is wrong. Check the configuration file as well.
