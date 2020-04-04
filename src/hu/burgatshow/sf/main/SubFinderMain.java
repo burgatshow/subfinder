@@ -60,6 +60,7 @@ public class SubFinderMain implements Serializable {
 	}
 
 	public static void main(String[] args) throws IOException {
+		
 		// Dump header
 		dumpHeaderAndFooter(true);
 
@@ -113,11 +114,11 @@ public class SubFinderMain implements Serializable {
 	 * Writes the tool's header to the console
 	 */
 	private static void dumpHeaderAndFooter(boolean isHeader) {
-		System.out.println(new SimpleDateFormat("yyyy. MM. dd. HH:mm:ss").format(new Date()));
 		System.out.println("\n\n=================================================");
 		if (isHeader) {
-			System.out.println("Subtitle Finder v0.0.0.0.2");
+			System.out.println("Subtitle Finder v0.0.0.0.3");
 			System.out.println("Author: burgatshow");
+			System.out.println(new SimpleDateFormat("'Start time': yyyy. MM. dd. HH:mm:ss").format(new Date()));
 		} else {
 			System.out.println("\n\nTool finished working, now go and Netflix and chill! Oh wait. :)\n\n");
 		}
@@ -260,9 +261,12 @@ public class SubFinderMain implements Serializable {
 
 		String k = null;
 		for (Object key : prop.keySet()) {
-			k = key.toString().replaceAll("_", " ");
-			seriesNameIdMap.put(k.toUpperCase(), prop.get(key).toString());
-			printVerbose(String.format("\t\t - %s: %s", k, prop.get(key).toString()));
+			k = key.toString().replaceAll("_", " ").toUpperCase();
+			seriesNameIdMap.put(k, prop.get(key).toString());
+		}
+
+		for (Map.Entry<String, String> entries : seriesNameIdMap.entrySet()) {
+			printVerbose(String.format("\t\t - %s: %s", entries.getKey(), entries.getValue()).toString());
 		}
 
 		printVerbose(String.format("\t - A total of %s series loaded from the file.", seriesNameIdMap.size()));
@@ -303,7 +307,7 @@ public class SubFinderMain implements Serializable {
 			printVerbose("\t - The file is readable by the tool, let's read...");
 		}
 
-		Pattern pattern = Pattern.compile("(.*)S([0-9]{1,2})E([0-9]{1,2})(.*)(720|1080)(.*)-(.*)");
+		Pattern pattern = Pattern.compile("(.*)S([0-9]{1,2})E([0-9]{1,2})(.*)(720|1080)(.*)-([a-zA-Z\\-]+)");
 
 		Files.list(videoFolder).sorted().filter(Files::isDirectory).forEach(path -> {
 			String name = path.getFileName().toString();
@@ -349,15 +353,18 @@ public class SubFinderMain implements Serializable {
 							}
 						}
 					} catch (IOException e) {
-						// FIXME
+						throw new IllegalStateException(
+								"Could not fetch provided folder and its content. Terminating...");
 					}
 
-					si.setSeries(matcher.group(2));
+					si.setSeason(matcher.group(2));
 					si.setEpisode(matcher.group(3));
 					si.setQuality(matcher.group(5));
 					si.setReleaser(matcher.group(7));
 
 					series.add(si);
+				} else {
+					System.out.println("\t\t\t - No series specific info found, probably movie.");
 				}
 			}
 
@@ -392,29 +399,32 @@ public class SubFinderMain implements Serializable {
 
 		RssReader reader = new RssReader();
 		series.forEach(s -> {
-			if (0 < s.getId() && s.isSubDownloadRequired()) {
+			if (0 != s.getId() && s.isSubDownloadRequired()) {
 				try {
 					StringBuffer seriesRSSURL = new StringBuffer("https://www.feliratok.info/?ny=magyar&rss=")
 							.append(s.getId());
 					List<Item> subs = reader.read(seriesRSSURL.toString()).collect(Collectors.toList());
 
-					printVerbose(String.format("\t\t - Fetching RSS URL: %s", seriesRSSURL.toString()));
+					printVerbose(String.format(
+							"\t\t - Fetching RSS URL for series %s (mapping ID: %d), episode %s, releaser: %s)",
+							s.getTitle(), s.getId(), s.getUpperCombinedSandE(false), s.getReleaser()));
 					for (Item sub : subs) {
 						String RSSItem = sub.getTitle().get().toUpperCase().replaceAll(":", "");
 
-						if (RSSItem.contains(s.getUpperCombinedSandE()) && RSSItem.contains(s.getUpperReleaser())) {
+						if (RSSItem.contains(s.getUpperCombinedSandE(true)) && RSSItem.contains(s.getUpperReleaser())) {
 							downloadables.put(s, sub.getLink().get());
-							printVerbose(String.format(
-									"\t\t - Found a subtitle for series %s (mapping ID: %d), episode %sx%s, releaser: %s",
-									s.getTitle(), s.getId(), s.getSeries(), s.getEpisode(), s.getReleaser()));
-							printVerbose(String.format("\t\t\t - URL: %s", sub.getLink().get()));
+							printVerbose("\t\t - Found a matching subtitle file!");
+							printVerbose(String.format("\t\t\t - Download URL: %s", sub.getLink().get()));
 							break;
 						}
 					}
 
 				} catch (IOException e) {
-					e.printStackTrace(); // FIXME
+					throw new IllegalStateException("Network or URL error occured, terminatenig...");
 				}
+			} else {
+				printVerbose(
+						String.format("\t\t - Skipping series with ID %s because it has a valid subtitle.", s.getId()));
 			}
 		});
 
@@ -426,87 +436,88 @@ public class SubFinderMain implements Serializable {
 		System.out.println("#4 - Downloading prepared files...");
 
 		if (downloadables.size() == 0) {
-			System.out.println("\tNothing will be downloaded beacuse no prepared files. Check back later! :)");
-			System.exit(0);
-		}
+			System.out.println(
+					"\tNothing will be downloaded beacuse there is/are no prepared files. Check back later! :)");
+		} else {
 
-		try {
-			Path savePath = null;
-			SeriesInfo si = null;
-			for (Map.Entry<Object, String> e : downloadables.entrySet()) {
-				si = (SeriesInfo) e.getKey();
-				savePath = Paths.get(parsedArgs.get("folder"), si.getFoldername(), si.getSubFileName());
+			try {
+				Path savePath = null;
+				SeriesInfo si = null;
+				for (Map.Entry<Object, String> e : downloadables.entrySet()) {
+					si = (SeriesInfo) e.getKey();
+					savePath = Paths.get(si.getSubFileName());
 
-				URL obj = new URL(e.getValue());
-				HttpURLConnection conn = (HttpURLConnection) obj.openConnection();
-				conn.setReadTimeout(5000);
-				conn.addRequestProperty("Accept-Language", "en-US,en;q=0.8");
-				conn.addRequestProperty("User-Agent", "Mozilla");
-
-				boolean redirect = false;
-				// normally, 3xx is redirect
-				int status = conn.getResponseCode();
-				if (status != HttpURLConnection.HTTP_OK) {
-					if (status == HttpURLConnection.HTTP_MOVED_TEMP || status == HttpURLConnection.HTTP_MOVED_PERM
-							|| status == HttpURLConnection.HTTP_SEE_OTHER)
-						redirect = true;
-				}
-
-				if (redirect) {
-					// get redirect url from "location" header field
-					String newUrl = conn.getHeaderField("Location");
-
-					// get the cookie if need, for login
-					String cookies = conn.getHeaderField("Set-Cookie");
-
-					// open the new connnection again
-					conn = (HttpURLConnection) new URL(newUrl).openConnection();
-					conn.setRequestProperty("Cookie", cookies);
+					URL obj = new URL(e.getValue());
+					HttpURLConnection conn = (HttpURLConnection) obj.openConnection();
+					conn.setReadTimeout(5000);
 					conn.addRequestProperty("Accept-Language", "en-US,en;q=0.8");
 					conn.addRequestProperty("User-Agent", "Mozilla");
-				}
 
-				BufferedReader in = new BufferedReader(new InputStreamReader(conn.getInputStream()));
-				String inputLine;
-				StringBuffer html = new StringBuffer();
+					boolean redirect = false;
+					// normally, 3xx is redirect
+					int status = conn.getResponseCode();
+					if (status != HttpURLConnection.HTTP_OK) {
+						if (status == HttpURLConnection.HTTP_MOVED_TEMP || status == HttpURLConnection.HTTP_MOVED_PERM
+								|| status == HttpURLConnection.HTTP_SEE_OTHER)
+							redirect = true;
+					}
 
-				while ((inputLine = in.readLine()) != null) {
-					html.append(inputLine);
-				}
-				in.close();
+					if (redirect) {
+						// get redirect url from "location" header field
+						String newUrl = conn.getHeaderField("Location");
 
-				Pattern downloadLinkPattern = Pattern
-						.compile("(\\/index\\.php\\?action=letolt[&|&amp;]fnev=.*[&|&amp;]felirat=[0-9]+)");
-				Matcher matcher = downloadLinkPattern.matcher(html.toString());
+						// get the cookie if need, for login
+						String cookies = conn.getHeaderField("Set-Cookie");
 
-				if (matcher.find()) {
-					BufferedInputStream inputStream = new BufferedInputStream(
-							new URL("https://feliratok.info" + matcher.group(1)).openStream());
+						// open the new connnection again
+						conn = (HttpURLConnection) new URL(newUrl).openConnection();
+						conn.setRequestProperty("Cookie", cookies);
+						conn.addRequestProperty("Accept-Language", "en-US,en;q=0.8");
+						conn.addRequestProperty("User-Agent", "Mozilla");
+					}
 
-					printVerbose(String.format("\t - Downloading file from URL: https://feliratok.info%s",
-							matcher.group(1)));
+					BufferedReader in = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+					String inputLine;
+					StringBuffer html = new StringBuffer();
 
-					if (testMode) {
-						System.out.println(
-								String.format("\t\tFile would be downloaded to location: %s", savePath.toString()));
-					} else {
-						FileOutputStream fileOS = new FileOutputStream(savePath.toString());
+					while ((inputLine = in.readLine()) != null) {
+						html.append(inputLine);
+					}
+					in.close();
 
-						byte data[] = new byte[1024];
-						int byteContent;
-						while ((byteContent = inputStream.read(data, 0, 1024)) != -1) {
-							fileOS.write(data, 0, byteContent);
+					Pattern downloadLinkPattern = Pattern
+							.compile("(\\/index\\.php\\?action=letolt[&|&amp;]fnev=.*[&|&amp;]felirat=[0-9]+)");
+					Matcher matcher = downloadLinkPattern.matcher(html.toString());
+
+					if (matcher.find()) {
+						BufferedInputStream inputStream = new BufferedInputStream(
+								new URL("https://feliratok.info" + matcher.group(1)).openStream());
+
+						printVerbose(String.format("\t - Downloading file from URL: https://feliratok.info%s",
+								matcher.group(1)));
+
+						if (testMode) {
+							System.out.println(
+									String.format("\t\tFile would be downloaded to location: %s", savePath.toString()));
+						} else {
+							FileOutputStream fileOS = new FileOutputStream(savePath.toString());
+
+							byte data[] = new byte[1024];
+							int byteContent;
+							while ((byteContent = inputStream.read(data, 0, 1024)) != -1) {
+								fileOS.write(data, 0, byteContent);
+							}
+
+							fileOS.close();
+							inputStream.close();
+
+							printVerbose(String.format("\t\tFile successfully downloaded to: %s", savePath.toString()));
 						}
-
-						fileOS.close();
-						inputStream.close();
-
-						printVerbose(String.format("\t\tFile successfully downloaded to: %s", savePath.toString()));
 					}
 				}
+			} catch (Exception e) {
+				throw new IllegalStateException("Could not fetch or process HTTP actions! Terminating...");
 			}
-		} catch (Exception e) {
-			e.printStackTrace();
 		}
 
 		System.out.println("#4 - Downloading prepared files: FINISHED.");
