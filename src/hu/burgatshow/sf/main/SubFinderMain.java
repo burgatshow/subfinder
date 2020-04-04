@@ -45,13 +45,16 @@ public class SubFinderMain implements Serializable {
 	private static final long serialVersionUID = 5929438987038607629L;
 
 	private static final Set<String> allowedCLICommands = new TreeSet<String>(
-			Arrays.asList("-F", "--folder", "-M", "--mapping", "-V", "--verbose", "-T", "--test", "-H", "--help"));
+			Arrays.asList("-F", "--folder", "-M", "--mapping", "-E", "--video-sizelimit", "-S", "--subtitle-sizelimit",
+					"-V", "--verbose", "-T", "--test", "-H", "--help"));
 	private static Map<String, String> parsedArgs = new HashMap<String, String>();
 
 	private static Set<SeriesInfo> series = new TreeSet<SeriesInfo>();
 	private static Map<Object, String> downloadables = new HashMap<Object, String>();
 	private static Map<String, String> seriesNameIdMap = new TreeMap<String, String>();
 
+	private static long videoSizeLimit = 300L;
+	private static long subtitleSizeLimit = 5L;
 	private static boolean verboseMode = false;
 	private static boolean testMode = false;
 
@@ -60,7 +63,7 @@ public class SubFinderMain implements Serializable {
 	}
 
 	public static void main(String[] args) throws IOException {
-		
+
 		// Dump header
 		dumpHeaderAndFooter(true);
 
@@ -91,19 +94,26 @@ public class SubFinderMain implements Serializable {
 			System.exit(0);
 		}
 
-		// ===================================================================================================
-		// ===================================================================================================
+		if (parsedArgs.containsKey("videosizelimit")) {
+			try {
+				videoSizeLimit = Long.parseLong(parsedArgs.get("videosizelimit"));
+			} catch (NumberFormatException e) {
+			}
+		}
 
-		// Load mapping file
+		if (parsedArgs.containsKey("subtitlesizelimit")) {
+			try {
+				subtitleSizeLimit = Long.parseLong(parsedArgs.get("subtitlesizelimit"));
+			} catch (NumberFormatException e) {
+			}
+		}
+
+		printVerbose(String.format("\tVideo file size limit: %d MB", videoSizeLimit));
+		printVerbose(String.format("\tSubtitle file size limit: %d KB", subtitleSizeLimit));
+
 		loadSeriesMapping();
-
-		// Map folder with video files
 		fetchFilesInFolder();
-
-		// Collect downloadable files
 		prepareDownload();
-
-		// Download files
 		downloadFiles();
 
 		dumpHeaderAndFooter(false);
@@ -116,7 +126,7 @@ public class SubFinderMain implements Serializable {
 	private static void dumpHeaderAndFooter(boolean isHeader) {
 		System.out.println("\n\n=================================================");
 		if (isHeader) {
-			System.out.println("Subtitle Finder v0.0.0.0.4 (Great Bee)");
+			System.out.println("Subtitle Finder v0.0.0.0.5 (Dancing Stars)");
 			System.out.println("Author: burgatshow");
 			System.out.println(new SimpleDateFormat("'Start time': yyyy. MM. dd. HH:mm:ss").format(new Date()));
 		} else {
@@ -160,6 +170,16 @@ public class SubFinderMain implements Serializable {
 						currentArg = "--mapping";
 						break;
 
+					case "-E":
+					case "--video-sizelimit":
+						currentArg = "--video-sizelimit";
+						break;
+
+					case "-S":
+					case "--subtitle-sizelimit":
+						currentArg = "--subtitle-sizelimit";
+						break;
+
 					case "--verbose":
 					case "-V":
 						currentArg = "--verbose";
@@ -185,6 +205,8 @@ public class SubFinderMain implements Serializable {
 				switch (arg) {
 				case "folder":
 				case "mapping":
+				case "videosizelimit":
+				case "subtitlesizelimit":
 					parsedArgs.put(arg, args[i + 1]);
 					break;
 				case "verbose":
@@ -208,20 +230,24 @@ public class SubFinderMain implements Serializable {
 	 */
 	private static void dumpHelp() {
 		System.out.println(
-				"\nThis tool is designed to download proper subtitle files from https://feliratok.info. \nThe tool is taking responsibility of the proper release, so if there is no subtitle \nfor the specific release, it will not download anything.\n\nIf it finds the proper subtitle, it will download it and place it next to the video\nfile with the same format like the original video file has.\n");
+				"\nThis tool is designed to download proper subtitle files from https://feliratok.info.\nThe tool is taking responsibility of the proper release, so if there is no subtitle \nfor the specific release, it will not download anything.\n\nIf it finds the proper subtitle, it will download it and place it next to the video\nfile with the same format like the original video file has.\n");
 
-		System.out.println("Usage:\n\tjava -jar SubFinder.jar --folder path --mapping path [ -VTH ]\n");
+		System.out.println("Usage:\n\tjava -jar SubFinder.jar --folder path --mapping path [ -ESVTH ]\n");
 
 		System.out.println("The program accepts the following arguments:\n\n");
 		System.out.println(
-				"\t-F, --folder\t\tThe folder where the tool can scan the series.\n\t\t\t\tObviously this is the folder where your files are downloaded.\n");
+				"\t-F, --folder\t\t\tThe folder where the tool can scan the series.\n\t\t\t\t\tObviously this is the folder where your files are downloaded.\n");
 		System.out.println(
-				"\t-M, --mapping\t\tThe path where from the tool can load the special properties\n\t\t\t\tfile which contains series=id mappings. Required because of the\n\t\t\t\tsite where we are downloading from.\n");
-		System.out.println("\t-V, --verbose\t\tProvides verbose, detailed output when running.\n");
+				"\t-M, --mapping\t\t\tThe path where from the tool can load the special properties\n\t\t\t\t\tfile which contains series=id mappings. Required because of the\n\t\t\t\t\tsite where we are downloading from.\n");
 		System.out.println(
-				"\t-T, --test\t\tTest run (or dry run) with the given configuration. It will\n\t\t\t\tsimulate what will happen, but it does not download and write\n\t\t\t\tanything to the disk.\n");
+				"\t-E, --video-sizelimit\t\tThe minimum file size in MB to consider a valid video file.\n\t\t\t\t\tIf not set, 300 MB will be used.\n");
 		System.out.println(
-				"\t-H, --help\t\tDisplays this help and exits.Keep in mind, that until this\n\t\t\t\targument is present, the tool will not do anything!\n");
+				"\t-S, --subtitle-sizelimit\tThe minimum file size in KB to consider a valid subtitle file.\n\t\t\t\t\tIf not set, 5 KB will be used.\n");
+		System.out.println("\t-V, --verbose\t\t\tProvides verbose, detailed output when running.\n");
+		System.out.println(
+				"\t-T, --test\t\t\tTest run (or dry run) with the given configuration. It will\n\t\t\t\t\tsimulate what will happen, but it does not download and write\n\t\t\t\t\tanything to the disk.\n");
+		System.out.println(
+				"\t-H, --help\t\t\tDisplays this help and exits.Keep in mind, that until this\n\t\t\t\t\targument is present, the tool will not do anything!\n");
 	}
 
 	/**
@@ -266,7 +292,7 @@ public class SubFinderMain implements Serializable {
 		}
 
 		for (Map.Entry<String, String> entries : seriesNameIdMap.entrySet()) {
-			printVerbose(String.format("\t\t - %s: %s", entries.getKey(), entries.getValue()).toString());
+			printVerbose(String.format("\t\t - %s: %s", entries.getKey(), entries.getValue()));
 		}
 
 		printVerbose(String.format("\t - A total of %s series loaded from the file.", seriesNameIdMap.size()));
@@ -394,7 +420,7 @@ public class SubFinderMain implements Serializable {
 	private static void prepareDownload() throws IllegalStateException {
 		System.out.println("#3 - Collecting required files to be downloaded.");
 		if (series.size() == 0) {
-			throw new IllegalStateException("Nothing to process, no series found.");
+			System.out.println("Nothing to process, no series found.");
 		}
 
 		RssReader reader = new RssReader();

@@ -65,6 +65,8 @@ The program accepts the following arguments:
 
 - `-F, --folder` **(*)** The folder where the tool can scan the series. Obviously this is the folder where your files are downloaded.
 - `-M, --mapping` **(*)** The path where from the tool can load the special properties file which contains `series=id` mappings. Required because of the structure of the site where we are downloading from.
+- `-E, --video-sizelimit` The minimum file size in `MB` to consider a valid video file. If not set, `300 MB` will be used.
+- `-S, --subtitle-sizelimit` The minimum file size in `KB` to consider valid subtitle file. If not set, `5 KB` will be used.
 - `-V, --verbose` Provides verbose, detailed output when running.
 - `-T, --test` Test run (or dry run) with the given configuration. It will simulate what will happen, but it does not download and write anything to the disk.
 - `-H, --help` Displays this help and exits.Keep in mind, that until this argument is present, the tool will not do anything!
