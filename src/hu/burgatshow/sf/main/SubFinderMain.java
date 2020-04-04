@@ -116,7 +116,7 @@ public class SubFinderMain implements Serializable {
 	private static void dumpHeaderAndFooter(boolean isHeader) {
 		System.out.println("\n\n=================================================");
 		if (isHeader) {
-			System.out.println("Subtitle Finder v0.0.0.0.3");
+			System.out.println("Subtitle Finder v0.0.0.0.4 (Great Bee)");
 			System.out.println("Author: burgatshow");
 			System.out.println(new SimpleDateFormat("'Start time': yyyy. MM. dd. HH:mm:ss").format(new Date()));
 		} else {
