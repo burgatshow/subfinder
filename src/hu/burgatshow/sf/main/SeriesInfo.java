@@ -11,7 +11,7 @@ public class SeriesInfo implements Serializable, Comparable<SeriesInfo> {
 	private String subFileName;
 	private boolean subDownloadRequired;
 	private String title;
-	private int series;
+	private int season;
 	private int episode;
 	private String quality;
 	private String releaser;
@@ -25,14 +25,14 @@ public class SeriesInfo implements Serializable, Comparable<SeriesInfo> {
 	}
 
 	public SeriesInfo(int id, String foldername, String videoFileName, String subFileName, boolean subDownloadRequired,
-			String title, int series, int episode, String quality, String releaser) {
+			String title, int season, int episode, String quality, String releaser) {
 		super();
 		this.id = id;
 		this.foldername = foldername;
 		this.videoFileName = videoFileName;
 		this.subFileName = subFileName;
 		this.subDownloadRequired = subDownloadRequired;
-		this.series = series;
+		this.season = season;
 		this.title = title;
 		this.episode = episode;
 		this.quality = quality;
@@ -99,24 +99,32 @@ public class SeriesInfo implements Serializable, Comparable<SeriesInfo> {
 		this.title = title;
 	}
 
-	public int getSeries() {
-		return series;
+	public int getSeason() {
+		return season;
 	}
 
-	public void setSeries(int series) {
-		this.series = series;
+	public String getSeasonFormatted() {
+		return String.format("%02d", season);
 	}
 
-	public void setSeries(String series) {
+	public void setSeason(int season) {
+		this.season = season;
+	}
+
+	public void setSeason(String season) {
 		try {
-			this.series = Integer.parseInt(series);
+			this.season = Integer.parseInt(season);
 		} catch (NumberFormatException e) {
-			this.series = -1;
+			this.season = -1;
 		}
 	}
 
 	public int getEpisode() {
 		return episode;
+	}
+
+	public String getEpisodeFormatted() {
+		return String.format("%02d", episode);
 	}
 
 	public void setEpisode(int episode) {
@@ -127,12 +135,13 @@ public class SeriesInfo implements Serializable, Comparable<SeriesInfo> {
 		try {
 			this.episode = Integer.parseInt(episode);
 		} catch (NumberFormatException e) {
-			this.series = -1;
+			this.season = -1;
 		}
 	}
 
-	public String getUpperCombinedSandE() {
-		return (series + "x" + String.format("%02d", episode)).toUpperCase();
+	public String getUpperCombinedSandE(boolean type) {
+		return type ? (season + "x" + getEpisodeFormatted()).toUpperCase()
+				: ("S" + getSeasonFormatted() + "E" + getEpisodeFormatted());
 	}
 
 	public String getQuality() {
@@ -169,7 +178,7 @@ public class SeriesInfo implements Serializable, Comparable<SeriesInfo> {
 		result = prime * result + id;
 		result = prime * result + ((quality == null) ? 0 : quality.hashCode());
 		result = prime * result + ((releaser == null) ? 0 : releaser.hashCode());
-		result = prime * result + series;
+		result = prime * result + season;
 		result = prime * result + ((subFileName == null) ? 0 : subFileName.hashCode());
 		result = prime * result + ((title == null) ? 0 : title.hashCode());
 		result = prime * result + ((videoFileName == null) ? 0 : videoFileName.hashCode());
@@ -204,7 +213,7 @@ public class SeriesInfo implements Serializable, Comparable<SeriesInfo> {
 				return false;
 		} else if (!releaser.equals(other.releaser))
 			return false;
-		if (series != other.series)
+		if (season != other.season)
 			return false;
 		if (subFileName == null) {
 			if (other.subFileName != null)
@@ -228,7 +237,7 @@ public class SeriesInfo implements Serializable, Comparable<SeriesInfo> {
 	public String toString() {
 		return "\nSeriesInfo [\n\tid = " + id + "\n\tfoldername = " + foldername + "\n\t video file name = "
 				+ videoFileName + "\n\t subtitle file name = " + subFileName + "\n\ttitle = " + title + "\n\tseries = "
-				+ series + "\n\tepisode = " + episode + "\n\tquality=" + quality + "\n\treleaser=" + releaser + "\n]";
+				+ season + "\n\tepisode = " + episode + "\n\tquality=" + quality + "\n\treleaser=" + releaser + "\n]";
 	}
 
 }
