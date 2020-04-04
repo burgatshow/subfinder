@@ -73,13 +73,5 @@ The program accepts the following arguments:
 
 Arguments marked with **(*)** are required.
 
-## Limitations
-The application currently has two built in limitations related to file sizes:
-
-- 300 MB limit is applied to all video files to avoid samples
-- 5 KB limit is applied to subtitle files
-
-I will make those two limits configurable in a later release. 
-
 ## Troubleshooting
 Use the verbose mode if you think something is wrong. Check the configuration file as well.
