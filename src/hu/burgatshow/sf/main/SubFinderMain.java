@@ -435,8 +435,6 @@ public class SubFinderMain implements Serializable {
 			System.out.println("Nothing to process, no series found.");
 		}
 
-		System.out.println(series);
-
 		RssReader reader = new RssReader();
 		series.forEach(s -> {
 			if (0 != s.getId() && s.isSubDownloadRequired()) {
