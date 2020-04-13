@@ -179,6 +179,7 @@ public class SeriesInfo implements Serializable, Comparable<SeriesInfo> {
 		result = prime * result + ((quality == null) ? 0 : quality.hashCode());
 		result = prime * result + ((releaser == null) ? 0 : releaser.hashCode());
 		result = prime * result + season;
+		result = prime * result + (subDownloadRequired ? 1231 : 1237);
 		result = prime * result + ((subFileName == null) ? 0 : subFileName.hashCode());
 		result = prime * result + ((title == null) ? 0 : title.hashCode());
 		result = prime * result + ((videoFileName == null) ? 0 : videoFileName.hashCode());
@@ -215,6 +216,8 @@ public class SeriesInfo implements Serializable, Comparable<SeriesInfo> {
 			return false;
 		if (season != other.season)
 			return false;
+		if (subDownloadRequired != other.subDownloadRequired)
+			return false;
 		if (subFileName == null) {
 			if (other.subFileName != null)
 				return false;
@@ -235,9 +238,13 @@ public class SeriesInfo implements Serializable, Comparable<SeriesInfo> {
 
 	@Override
 	public String toString() {
-		return "\nSeriesInfo [\n\tid = " + id + "\n\tfoldername = " + foldername + "\n\t video file name = "
-				+ videoFileName + "\n\t subtitle file name = " + subFileName + "\n\ttitle = " + title + "\n\tseries = "
-				+ season + "\n\tepisode = " + episode + "\n\tquality=" + quality + "\n\treleaser=" + releaser + "\n]";
+		return "SeriesInfo [\n\tid = " + id + ",\n\tfoldername = " + foldername + ",\n\tvideoFileName = "
+				+ videoFileName + ",\n\tsubFileName = " + subFileName + ",\n\tsubDownloadRequired = "
+				+ subDownloadRequired + ",\n\ttitle = " + title + ",\n\tseason = " + season
+				+ ",\n\tepisode = " + episode + ",\n\tquality = " + quality + ",\n\treleaser = " + releaser
+				+ "\n]";
 	}
+
+	
 
 }
