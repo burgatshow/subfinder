@@ -152,8 +152,8 @@ public class SubFinderMain implements Serializable {
 
 		for (int i = 0; i < args.length; i++) {
 			String currentArg = null;
-			switch (args[i].charAt(0)) {
-			case '-':
+
+			if (args[i].charAt(0) == '-') {
 				if (args[i].length() < 2) { // Invalid 1 character long something
 					System.err.println("ERROR: Invalid argument: " + args[i]);
 				} else {
@@ -222,10 +222,8 @@ public class SubFinderMain implements Serializable {
 				}
 
 				break;
-
-			default:
-				break;
 			}
+
 		}
 	}
 
