@@ -153,7 +153,8 @@ public class SubFinderMain implements Serializable {
 		for (int i = 0; i < args.length; i++) {
 			String currentArg = null;
 
-			if (args[i].charAt(0) == '-') {
+			switch (args[i].charAt(0)) {
+			case '-':
 				if (args[i].length() < 2) { // Invalid 1 character long something
 					System.err.println("ERROR: Invalid argument: " + args[i]);
 				} else {
@@ -221,6 +222,9 @@ public class SubFinderMain implements Serializable {
 					break;
 				}
 
+				break;
+
+			default:
 				break;
 			}
 
@@ -369,7 +373,6 @@ public class SubFinderMain implements Serializable {
 						String[] f = null;
 						long filesize = 0;
 						for (Path p : sortedFiles) {
-							System.out.println(p);
 							f = p.toString().split("\\.(?=[^\\.]+$)");
 							filesize = p.toFile().length();
 
