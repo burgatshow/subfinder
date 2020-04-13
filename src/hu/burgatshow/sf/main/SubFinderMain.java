@@ -10,6 +10,8 @@ import java.io.InputStreamReader;
 import java.io.Serializable;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -18,7 +20,9 @@ import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
 import java.security.cert.X509Certificate;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -357,9 +361,17 @@ public class SubFinderMain implements Serializable {
 						DirectoryStream<Path> files = Files
 								.newDirectoryStream(Paths.get(videoFolder.toString(), si.getFoldername()));
 
+						// Need to sort the files read from filesystem because DirectoryStream does not
+						// sort it, so items can be read in any order --> may break the logic for
+						// isSubDownloadRequired() if the last file will be the video
+						List<Path> sortedFiles = new ArrayList<Path>();
+						files.forEach(sortedFiles::add);
+						sortedFiles.sort(Comparator.comparing(Path::toString));
+
 						String[] f = null;
 						long filesize = 0;
-						for (Path p : files) {
+						for (Path p : sortedFiles) {
+							System.out.println(p);
 							f = p.toString().split("\\.(?=[^\\.]+$)");
 							filesize = p.toFile().length();
 
@@ -369,6 +381,7 @@ public class SubFinderMain implements Serializable {
 								si.setVideoFileName(p.toString());
 								si.setSubFileName(f[0] + ".srt");
 								si.setSubDownloadRequired(true);
+
 							}
 
 							if (f[1].equalsIgnoreCase("srt") && subtitleFileSizeLimit < filesize / 1024) {
@@ -387,7 +400,6 @@ public class SubFinderMain implements Serializable {
 					si.setEpisode(matcher.group(3));
 					si.setQuality(matcher.group(5));
 					si.setReleaser(matcher.group(7));
-
 					series.add(si);
 				} else {
 					System.out.println("\t\t\t - No series specific info found, probably movie.");
@@ -422,6 +434,8 @@ public class SubFinderMain implements Serializable {
 		if (series.size() == 0) {
 			System.out.println("Nothing to process, no series found.");
 		}
+
+		System.out.println(series);
 
 		RssReader reader = new RssReader();
 		series.forEach(s -> {
@@ -465,7 +479,6 @@ public class SubFinderMain implements Serializable {
 			System.out.println(
 					"\tNothing will be downloaded beacuse there is/are no prepared files. Check back later! :)");
 		} else {
-
 			try {
 				Path savePath = null;
 				SeriesInfo si = null;
@@ -512,15 +525,16 @@ public class SubFinderMain implements Serializable {
 					in.close();
 
 					Pattern downloadLinkPattern = Pattern
-							.compile("(\\/index\\.php\\?action=letolt[&|&amp;]fnev=.*[&|&amp;]felirat=[0-9]+)");
+							.compile("action=letolt[&|&amp;]fnev=(.*)[&|&amp;]felirat=([0-9]+)");
 					Matcher matcher = downloadLinkPattern.matcher(html.toString());
 
 					if (matcher.find()) {
-						BufferedInputStream inputStream = new BufferedInputStream(
-								new URL("https://feliratok.info" + matcher.group(1)).openStream());
+						URL downloadURL = new URL("https://feliratok.info/index.php?action=letolt&fnev="
+								+ URLEncoder.encode(matcher.group(1), StandardCharsets.UTF_8.toString()) + "&felirat="
+								+ matcher.group(2));
 
-						printVerbose(String.format("\t - Downloading file from URL: https://feliratok.info%s",
-								matcher.group(1)));
+						BufferedInputStream inputStream = new BufferedInputStream(downloadURL.openStream());
+						printVerbose(String.format("\t - Downloading file from URL: %s", downloadURL));
 
 						if (testMode) {
 							System.out.println(
@@ -542,7 +556,7 @@ public class SubFinderMain implements Serializable {
 					}
 				}
 			} catch (Exception e) {
-				throw new IllegalStateException("Could not fetch or process HTTP actions! Terminating...");
+				throw new IllegalStateException("Could not fetch or process HTTP actions! Terminating...", e);
 			}
 		}
 
